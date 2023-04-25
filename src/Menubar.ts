@@ -41,6 +41,9 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         while (_) try {
             if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
             if (y = 0, t) op = [op[0] & 2, t.value];
+            if (!op?.[0] && op?.[0] !== 0) {
+                return { value: 2, done: true };
+            }
             switch (op[0]) {
                 case 0: case 1: t = op; break;
                 case 4: _.label++; return { value: op[1], done: false };
@@ -158,7 +161,7 @@ var Menubar = /** @class */ (function (_super) {
      * Hide the menubar window.
      */
     Menubar.prototype.hideWindow = function () {
-        if (!this._browserWindow || !this._isVisible) {
+        if (!this?._browserWindow || !this._isVisible) {
             return;
         }
         this.emit('hide');
@@ -186,7 +189,7 @@ var Menubar = /** @class */ (function (_super) {
      */
     Menubar.prototype.showWindow = function (trayPos) {
         return __awaiter(this, void 0, void 0, function () {
-            var noBoundsPosition, position, x, y;
+            var noBoundsPosition
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -227,18 +230,48 @@ var Menubar = /** @class */ (function (_super) {
                             this._options.windowPosition &&
                             this._options.windowPosition.startsWith('tray')) {
                             noBoundsPosition =
-                                process.platform === 'win32' ? 'bottomRight' : 'topRight';
+                                process.platform === 'win32' ? 'bottomRight' : 'center';
                         }
-                        position = this.positioner.calculate(this._options.windowPosition || noBoundsPosition, trayPos);
+                        let bounds = this.window?.getBounds();
+                        let { width, height } = bounds || { width: 1260, height: 780 }
+
+                        let { x, y } = this.positioner.calculate(this._options.windowPosition)
+                        let screen = electron_1.screen.getDisplayNearestPoint(electron_1.screen.getCursorScreenPoint())
+                        let { workArea } = screen;
+                        if (workArea.width < width) {
+                            width = workArea.width;
+                            height = Math.round(width * 780 / 1260);
+                        } if (workArea.height < height) {
+                            height = workArea.height;
+                            width = Math.round(height * 1260 / 780);
+                        }
+                        let probablePosition
+                        if (this._options.windowPosition !== 'center') {
+                            probablePosition = this.positioner.calculate(this._options.windowPosition || noBoundsPosition, trayPos);
+                        } else {
+                            probablePosition = {
+                                x: workArea.x + (workArea.width / 2) - (width / 2),
+                                y: workArea.y + (workArea.height / 2) - (height / 2)
+                            }
+                        }
+
                         x = this._options.browserWindow.x !== undefined
                             ? this._options.browserWindow.x
-                            : this._options.browserWindow.shift_x ? trayPos.x + this._options.browserWindow.shift_x : position.x;
+                            : this._options.browserWindow.shift_x ? trayPos.x + this._options.browserWindow.shift_x : probablePosition.x;
                         y = this._options.browserWindow.y !== undefined
                             ? this._options.browserWindow.y
-                            : this._options.browserWindow.shift_y ? trayPos.y + this._options.browserWindow.shift_y : position.y;
+                            : this._options.browserWindow.shift_y ? trayPos.y + this._options.browserWindow.shift_y : probablePosition.y;
                         // `.setPosition` crashed on non-integers
                         // https://github.com/maxogden/menubar/issues/233
                         this._browserWindow.setPosition(Math.round(x), Math.round(y));
+
+                        if (this.window?.cancelShow) {
+
+                            if (this.window) {
+                                this.window.cancelShow = false;
+                                return [2];
+                            }
+                        }
                         this._browserWindow.show();
                         this._isVisible = true;
                         this.emit('after-show');
@@ -259,6 +292,7 @@ var Menubar = /** @class */ (function (_super) {
                         }
                         if (this._options.activateWithApp) {
                             this.app.on('activate', function (_event, hasVisibleWindows) {
+
                                 if (!hasVisibleWindows) {
                                     _this.showWindow().catch(console.error);
                                 }
@@ -321,7 +355,11 @@ var Menubar = /** @class */ (function (_super) {
                             return [2 /*return*/, this.hideWindow()];
                         }
                         this._cachedBounds = bounds || this._cachedBounds;
-                        return [4 /*yield*/, this.showWindow(this._cachedBounds)];
+                        if (this.window)
+                            this.window.cancelShow = false;
+                        bounds = this.window?.getBounds() || bounds;
+
+                        return [4 /*yield*/, this.showWindow()];
                     case 1:
                         _a.sent();
                         return [2 /*return*/];
