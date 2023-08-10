@@ -1,4 +1,4 @@
-
+"use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
@@ -82,6 +82,7 @@ var getWindowPosition_1 = require("./util/getWindowPosition");
 var Menubar = /** @class */ (function (_super) {
     __extends(Menubar, _super);
     function Menubar(app, options) {
+        console.log('menubar')
         var _this = _super.call(this) || this;
         _this._blurTimeout = null; // track blur events with timeout
         _this._app = app;
@@ -351,7 +352,8 @@ var Menubar = /** @class */ (function (_super) {
                         if (this._blurTimeout) {
                             clearInterval(this._blurTimeout);
                         }
-                        if (this._browserWindow && this._isVisible) {
+                        console.log("isfocused", this._browserWindow?.isFocused())
+                        if (this._browserWindow && this._isVisible && this._browserWindow?.isFocused()) {
                             return [2 /*return*/, this.hideWindow()];
                         }
                         this._cachedBounds = bounds || this._cachedBounds;
@@ -385,8 +387,9 @@ var Menubar = /** @class */ (function (_super) {
                             if (!_this._browserWindow) {
                                 return;
                             }
+                            console.log('blurRING', _this._options.browserWindow)
                             // hack to close if icon clicked when open
-                            _this._browserWindow.isAlwaysOnTop() || _this._options.browserWindow.alwaysOnTop
+                            _this._browserWindow.isAlwaysOnTop() || _this._options.browserWindow.alwaysOnTop || _this._options.browserWindow.title == "Autopilot"
                                 ? _this.emit('focus-lost')
                                 : (_this._blurTimeout = setTimeout(function () {
                                     _this.hideWindow();
